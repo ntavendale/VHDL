@@ -5,11 +5,12 @@
 
 ## This file is identical to the one found here:
 ## https://github.com/Digilent/Basys3/blob/master/Projects/XADC_Demo/src/constraints/Basys3_Master.xdc
-## However there are other version floating around using idividual names for switched instead of an 
-## array etc, etc... The VHDL Projects at https://www.fpga4student.com/ have there own version of the 
-## master constraint file. Pins are the same but signals named differently in many cases.
+##
+## However there are other versions floating around using individual names for switches instead of a arrays
+## etc, etc... The VHDL Projects at https://www.fpga4student.com/ have their own version of this 
+## master constraint file - pins are the same but signals are named differently in many cases.
 ## I am including this here because, unless otherwise stated, everything in this repository uses
-## this one.
+## this version.
 
 ## Clock signal
 set_property -dict { PACKAGE_PIN W5   IOSTANDARD LVCMOS33 } [get_ports clk]
