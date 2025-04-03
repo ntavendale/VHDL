@@ -1,14 +1,14 @@
 ----------------------------------------------------------------------
 -- Original File: https://github.com/nandland/UART/blob/main/VHDL/source/UART_TX.vhd
--- Relased under MIT License.
+-- Released under MIT License.
 ----------------------------------------------------------------------
 -- This file contains the UART Transmitter.  This transmitter is able
 -- to transmit 8 bits of serial data, one start bit, one stop bit,
 -- and no parity bit.  When transmit is complete o_TX_Done will be
 -- driven high for one clock cycle.
 --
--- Set Generic g_CLKS_PER_BIT as follows:
--- g_CLKS_PER_BIT = (Frequency of i_Clk)/(Frequency of UART)
+-- Set Generic CLKS_PER_BIT as follows:
+-- CLKS_PER_BIT = (Frequency of i_Clk)/(Frequency of UART)
 -- Example: 100 MHz Clock, 115200 baud UART
 -- (100000000)/(115200) = 868
 
@@ -27,10 +27,10 @@ entity UART_TX is
   );
   port (
     i_TX_Clk    : in  std_logic;
-    i_TX_DV     : in  std_logic; -- Drivien high when data value in i_TX_Byte ready to be serialized
+    i_TX_DV     : in  std_logic; -- Driven high when data value in i_TX_Byte ready to be serialized
     i_TX_Byte   : in  std_logic_vector(7 downto 0);
     o_TX_Active : out std_logic;
-    o_TX_Serial : out std_logic; -- Serial Outpuiut
+    o_TX_Serial : out std_logic; -- Serial Output
     o_TX_Done   : out std_logic
   );
 end UART_TX;
@@ -58,7 +58,7 @@ begin
           r_Clk_Count <= 0;
           r_Bit_Index <= 0;
           if i_TX_DV = '1' then
-            -- copy input dtata (i_TX_Byte) into our internal register (r_TX_Data)
+            -- copy input data (i_TX_Byte) into our internal register (r_TX_Data)
             -- then move s_TX_Start_Bit to start serialization process  
             r_TX_Data <= i_TX_Byte;
             r_Tx_State <= TX_START_BIT;
@@ -68,8 +68,8 @@ begin
           end if;
         
         when TX_START_BIT =>
-          o_TX_Active <= '1'; -- Drive line high to indicate we are actively serilizing data.
-          o_TX_Serial <= '0'; -- Send out first peice of serial data: The START BIT 
+          o_TX_Active <= '1'; -- Drive line high to indicate we are actively serializing data.
+          o_TX_Serial <= '0'; -- Send out first piece of serial data: The START BIT 
           -- Now we need to wait and transmit start bit for CLKS_PER_BIT Cycles 
           -- before moving on to the data bits
           if r_Clk_Count < CLKS_PER_BIT - 1 then
@@ -109,7 +109,7 @@ begin
           
         when TX_STOP_BIT =>
           o_TX_Serial <= '1';
-          -- Now we need to wait and transmit sttop bit for CLKS_PER_BIT Cycles 
+          -- Now we need to wait and transmit stop bit for CLKS_PER_BIT Cycles 
           -- before moving on to the data bits
           if r_Clk_Count < CLKS_PER_BIT - 1 then
             -- stay in our current state
@@ -124,12 +124,11 @@ begin
           end if; 
         
         when CLEANUP =>
-          o_TX_Active <= '0'; -- Drive line low to indicate we are no longer actively serilizing data.
+          o_TX_Active <= '0'; -- Drive line low to indicate we are no longer actively serializing data.
           r_TX_Done   <= '1';
           r_Tx_State   <= IDLE;
             
-        -- Any other state or state undefined?
-        -- Go to s_Idle!  
+        -- Any other state or state undefined? Go to IDLE!  
         when others =>
           r_Tx_State  <= IDLE;
       end case;

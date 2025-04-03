@@ -1,5 +1,5 @@
 -- Original File: https://github.com/nandland/UART/blob/main/VHDL/source/UART_RX.vhd
--- Relased under MIT License.
+-- Released under MIT License.
 
 -- This file contains the UART Receiver.  This receiver is able to
 -- receive 8 bits of serial data, one start bit, one stop bit,
@@ -7,21 +7,14 @@
 -- driven high for one clock cycle.
 -- 
 -- Set Generic CLKS_PER_BIT as follows:
--- g_CLKS_PER_BIT = (Frequency of i_Clk)/(Frequency of UART)
--- Example: 100 MHz Clock, 115200 baud UART
+-- CLKS_PER_BIT = (Frequency of Clock)/(Frequency of UART)
+-- Example: 100 MHz Clock, 115200 baud
 -- (100000000)/(115200) = 868
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
 use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
 
 entity UART_RX is
   generic (
@@ -39,12 +32,12 @@ end UART_RX;
 
 architecture rtl of UART_RX is
   -- yes, it's a Finite State Machine!
-  type t_SM_Main is (s_Idle, s_RX_Start_Bit, s_RX_Data_Bits, s_RX_Stop_Bit, s_Cleanup);
-  signal r_SM_Main : t_SM_Main := s_Idle; -- initial state.
+  type t_Rx_State is (IDLE, RX_START_BIT, RX_DATA_BITS, RX_STOP_BIT, CLEANUP);
+  signal r_Rx_State : t_Rx_State := IDLE; -- initial state.
   signal r_RX_Data_R : std_logic := '0'; -- intermediate buffer for incoming serial data
   signal r_RX_Data   : std_logic := '0'; -- holds incoming serial data
   
-  signal r_Clk_Count : integer range 0 to CLKS_PER_BIT-1 := 0; -- track number of clocklk signals
+  signal r_Clk_Count : integer range 0 to CLKS_PER_BIT-1 := 0; -- track number of clock signals
   signal r_Bit_Index : integer range 0 to 7 := 0;  -- 8 Bits Total
   signal r_RX_Byte   : std_logic_vector(7 downto 0) := (others => '0');
   signal r_RX_DV     : std_logic := '0';
@@ -64,8 +57,8 @@ begin
   p_UART_RX : process (i_Rx_Clk)
   begin
     if rising_edge(i_Rx_Clk) then
-      case r_SM_Main is
-        when s_Idle =>
+      case r_Rx_State is
+        when IDLE =>
           -- Reset count and index
           r_RX_DV <= '0';
           r_Clk_Count <= 0;
@@ -73,44 +66,44 @@ begin
         
          if r_RX_Data = '0' then       -- Start bit detected, data is arriving
            -- change to next state
-           r_SM_Main <= s_RX_Start_Bit;
+           r_Rx_State <= RX_START_BIT;
          else
            -- stay in idle if not data
-           r_SM_Main <= s_Idle;
+           r_Rx_State <= IDLE;
          end if;
        
-        when s_RX_Start_Bit =>
+        when RX_START_BIT =>
           -- Check middle of start bit to make sure it's still low
           if r_Clk_Count = (CLKS_PER_BIT-1)/2 then
             if r_RX_Data = '0' then
               -- Reset counter since we got to the middle of the start bit.
               r_Clk_Count <= 0;  
               -- Change to next state to start collecting collect data bits.
-              r_SM_Main   <= s_RX_Data_Bits;
+              r_Rx_State   <= RX_DATA_BITS;
             else
               -- If it's not low, it's not a start bit. So we need to go back to idle 
               -- to wait for a start bit.  
-              r_SM_Main  <= s_Idle;
+              r_Rx_State  <= IDLE;
             end if;
           else
             -- We need to spend a few cycles waiting until we get to the middle of the bit.
-            -- remember 115200 may be 115 thoufsand bits persec but there are 100 mu=illion 
+            -- remember 115200 may be 115 thousand bits/sec but there are 100 million 
             -- clock cycles per sec, so it will take a few clock cycles to get to the middle
             -- of the data bit.
-            -- So we can just hang out in this state untile we get there. 
+            -- So we can just hang out in this state untie we get there. 
             r_Clk_Count <= r_Clk_Count + 1;
-            r_SM_Main   <= s_RX_Start_Bit;
+            r_Rx_State   <= RX_START_BIT;
           end if;
        
-        when s_RX_Data_Bits =>
-          -- Spin in this state to get half way through the next bit and sameple. 
+        when RX_DATA_BITS =>
+          -- Spin in this state to get half way through the next bit and sample. 
           -- Remember we reset the count HALF WAY into the Start Bit 
           -- when were in the  s_RX_Start_Bit state  so after 
           -- CLKS_PER_BIT have elapsed wei will be HALF WAY through 
           -- the NEXT data bit, and so on...
           if r_Clk_Count < CLKS_PER_BIT - 1 then
             r_Clk_Count <= r_Clk_Count + 1;
-            r_SM_Main   <= s_RX_Data_Bits;
+            r_Rx_State   <= RX_DATA_BITS;
           else
             -- Once CLKS_PER_BIT cycles hae run we can extract the data bit.
             r_Clk_Count            <= 0; -- reset clock count to start the next bit
@@ -121,15 +114,15 @@ begin
               -- Increment bit index so we know where to store the NEXT data bit
               -- while remain in s_RX_Data_Bits state to collect the next bit.
               r_Bit_Index <= r_Bit_Index + 1;
-              r_SM_Main   <= s_RX_Data_Bits;
+              r_Rx_State   <= RX_DATA_BITS;
             else
-              -- We have collected 8 dtata bits. We now need to rest the bit index 
-              -- and initiate thae change of state to watch for the stop bit.
+              -- We have collected 8 data bits. We now need to rest the bit index 
+              -- and initiate the change of state to watch for the stop bit.
                r_Bit_Index <= 0;
-               r_SM_Main   <= s_RX_Stop_Bit;
+               r_Rx_State   <= RX_STOP_BIT;
             end if;
           end if;
-        when s_RX_Stop_Bit =>
+        when RX_STOP_BIT =>
           -- Spin in this state to get half way through the next bit. 
           -- Remember we reset the count HALF WAY into the Start Bit 
           -- when were in the  s_RX_Start_Bit state  so CLKS_PER_BIT 
@@ -137,23 +130,23 @@ begin
           -- subsequent bit.
           if r_Clk_Count < CLKS_PER_BIT - 1 then
             r_Clk_Count <= r_Clk_Count + 1;
-            r_SM_Main   <= s_RX_Stop_Bit;
+            r_Rx_State   <= RX_STOP_BIT;
           else
-            -- Indicate thast 8 bit dta value has been collected.
+            -- Indicate that 8 bit data value has been collected.
             -- r_RX_DV will be high for only one clock cycle.
             r_RX_DV     <= '1';  
             r_Clk_Count <= 0;   -- reset clock count
-            r_SM_Main   <= s_Cleanup; -- go to cleanup state.
+            r_Rx_State   <= CLEANUP; -- go to cleanup state.
           end if;
           
-        when s_Cleanup =>
+        when CLEANUP =>
           -- We are here for one clock cycle.
-          r_SM_Main <= s_Idle;
+          r_Rx_State <= IDLE;
           r_RX_DV   <= '0';
         
-        -- Unkown or undefined state? Go to s_Idle.  
+        -- Unknown or undefined state? Go to IDLE.  
         when others =>
-          r_SM_Main <= s_Idle;             
+          r_Rx_State <= IDLE;             
       end case;
     end if;
   end process p_UART_RX;

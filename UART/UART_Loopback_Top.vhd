@@ -1,16 +1,22 @@
+-- Copyright 2025 Nigel Tavendale
+-- Permission is hereby granted, free of charge, to any person obtaining a copy of this code 
+-- associated documentation files (the “Code”), to deal in the Code without restriction, including 
+-- without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+-- and/or sell copies of the Code, and to permit persons to whom the Code is furnished to do so, 
+-- subject to the following conditions:
+--
+-- The above copyright notice and this permission notice shall be included in all copies or substantial 
+-- portions of the Code.
+--
+-- THE CODE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
+-- TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT 
+-- SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN 
+-- ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE CODE OR THE USE OR 
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
--- library UNISIM;
--- use UNISIM.VComponents.all;
-
--- VHDL 2008
+-- Use at least VHDL 2008 when building.
 
 entity UART_Loopback_Top is
   generic (
@@ -33,7 +39,7 @@ architecture RTL of UART_Loopback_Top is
   signal w_TX_Active : std_logic;
   signal w_TX_Serial : std_logic;
 begin
-
+  -- UART_RX.vhd
   ART_RX_Inst : entity work.UART_RX
     generic map (
       CLKS_PER_BIT => BASYS3_CLKS_PER_BIT)
@@ -45,6 +51,7 @@ begin
  
  
   -- Creates a simple loopback to test TX and RX
+  -- UART_TX.vhd
   UART_TX_Inst : entity work.UART_TX
     generic map (
       CLKS_PER_BIT => BASYS3_CLKS_PER_BIT)               
@@ -57,9 +64,17 @@ begin
       o_TX_Done   => open
       );
  
-  -- Drive UART line high when transmitter is not active
+  --This will Drive UART line high when transmitter is not active, indicating idle.
+  -- Otherwise the Byte transmitted will be echoed back. When running in a terminal 
+  -- it is the echo back that causes the key characters to print, NOT the key press itself.
+  -- Replace this with RsTx <= '1' and you can press the keys, and see the key code
+  -- displayed on the board's seven segment display, but you won't see characters in the terminal.
   RsTx <= w_TX_Serial when w_TX_Active = '1' else '1';
   
+  -- Seven_Segment_Display_Binary.vhd
+  -- Drive Basys 3 Display to show scan codes of key presses
+  -- The right most two of the seven segment displays wil display
+  -- a nibble (0-F) each. The leftmost will display 0s.
   SevenSeg1_Inst : entity work.Seven_Segment_Display_Binary
     port map (
       i_Clock       => clk,
