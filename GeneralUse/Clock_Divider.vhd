@@ -41,14 +41,15 @@ begin
       count <= 0;
       tmp   <= '0';
     elsif rising_edge(i_Clk_In) then
-      count <= count + 1;
       if (count = (DIVIDE_BY / 2) -1) then
         count <= 0;
         tmp <= not tmp;
+      else
+        count <= count + 1;
       end if; 
     end if;
-    
-    o_Clock_Out <= tmp;
-    
   end process;
+  
+  o_Clock_Out <= tmp;
+  
 end RTL;
